@@ -13,21 +13,32 @@ In a yearbook, each student's profiles — which includes peer-authored descript
 ```
 pma-yearbook-sentiment-kg/
 │
-├── data/
-│   ├── example_profile1.md       # Fake graduate sample
-│   ├── example_profile2.md       # Fake graduate sample 
-│   └── graduates.csv              # Final merged dataset (real data not included)
+├── README.md
+├── .gitignore
 │
-├── profiledata_etl.py             # Step 1–5: Markdown → JSON → CSV
-├── sentimentkg_build.ipynb        # Step 6: Aspect extraction + sentiment scoring
-├── sentimentkg_analysis.ipynb     # Step 7: Network analysis + visualizations
+├── envs/
+│   ├── env_sentimentkg_build.yml
+│   └── env_sentimentkg_analysis.yml
 │
-└── README.md
-```
+├── pipeline/
+│   └── profiledata_etl.py         ← Step 1: MD → JSON → CSV
+│
+├── notebooks/
+│   ├── sentimentkg_build.ipynb    ← Step 2: Aspect extraction + ABSA
+│   └── sentimentkg_analysis.ipynb ← Step 3: Network + sentiment analysis
+│
+└── data/
+    ├── raw/
+    │   ├── example_profile1.md
+    │   └── example_profile2.md
+    └── processed/
+        └── .gitkeep               # Final merged dataset (real data not included)
+``` 
+
 
 > **NOTE:** This repo does not include the real yearbook data, only FICTIONAL biographies as examples for the input `.md` format. 
 > Also, this repo does not include the image-to-text processing pipeline because I'm not proud of it. In the end, I had to manually rewrite every `.md` for for every student profile because the OCR extraction was so poor. 
-> This was my very first python project!
+> In retrospect, alot of my coding choices weren't the easiest or efficient. This was basically my first project using Python and VSCode.
 
 
 ---
