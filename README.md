@@ -1,82 +1,121 @@
 # Rule-Based ABSA Knowledge Graph for PMA Graduate Profiles
 
-A custom rule-based NLP data pipeline based on Philippine Military Academy (PMA) Class of 1980 yearbook records. The yearbook pages were transcribed to structured text (one MD per student), then processed through an aspect-based sentiment analysis (ABSA) pipeline to study the relationship between a cadet's social network and the sentiment expressed in their written profiles.
+A custom NLP data pipeline built on Philippine Military Academy (PMA) Class of 1980 yearbook records. Each cadet's profile — a peer-authored description and a self-chosen quote — is treated as a dual window into external perception and internal self-expression. These are processed through an aspect-based sentiment analysis (ABSA) pipeline and analyzed alongside each cadet's network of activities, awards, and company affiliations.
 
-This repo was developed as part of my undergrad thesis exploring the social structure of PMA Class of 1980 through the lens of their yearbook. 
+Developed as part of an undergraduate thesis exploring the social structure of PMA Class of 1980 through the lens of their yearbook.
 
-In a yearbook, each student's profiles — which includes peer-authored descriptions and self-chosen quotes — are treated as dual windows into the external perceptions and internal self-expressions of identity; analyzed together with each cadet's network of activities, awards, and company affiliations.
+> **Note:** This repo does not include the real yearbook data — only fictional biographies as examples of the expected `.md` input format. The image-to-text pipeline is also not included; every `.md` file was ultimately transcribed manually due to poor OCR quality.
 
 ---
 
-## What's in this repo
+## Repository structure
 
 ```
 pma-yearbook-sentiment-kg/
 │
-├── README.md
-├── .gitignore
+├── data/
+│   ├── raw/                         # Input .md files (example profiles only)
+│   │   ├── example_profile1.md
+│   │   └── example_profile2.md
+│   └── processed/                   # ETL outputs — gitignored (real data stays local)
 │
 ├── envs/
-│   ├── env_sentimentkg_build.yml
-│   └── env_sentimentkg_analysis.yml
-│
-├── pipeline/
-│   └── profiledata_etl.py         ← Step 1: MD → JSON → CSV
+│   ├── env_sentimentkg_build.yml    # Conda env for the build notebook (Python 3.7)
+│   └── env_sentimentkg_analysis.yml # Conda env for the analysis notebook (Python 3.12)
 │
 ├── notebooks/
-│   ├── sentimentkg_build.ipynb    ← Step 2: Aspect extraction + ABSA
-│   └── sentimentkg_analysis.ipynb ← Step 3: Network + sentiment analysis
+│   ├── sentimentkg_build.ipynb      # Step 2: Aspect extraction + sentiment scoring
+│   └── sentimentkg_analysis.ipynb   # Step 3: Network analysis + visualizations
 │
-└── data/
-    ├── raw/
-    │   ├── example_profile1.md
-    │   └── example_profile2.md
-    └── processed/
-        └── .gitkeep               # Final merged dataset (real data not included)
-``` 
-
-
-> **NOTE:** This repo does not include the real yearbook data, only FICTIONAL biographies as examples for the input `.md` format. 
-> Also, this repo does not include the image-to-text processing pipeline because I'm not proud of it. In the end, I had to manually rewrite every `.md` for for every student profile because the OCR extraction was so poor. 
-> In retrospect, alot of my coding choices weren't the easiest or efficient. This was basically my first project using Python and VSCode.
-
+├── src/
+│   └── profiledata_etl.py           # Step 1: Markdown → JSON → CSV
+│
+├── figures/                         # Saved plot outputs — gitignored
+├── .gitignore
+└── README.md
+```
 
 ---
 
 ## Pipeline overview
 
 ```
-Markdown (md) for each student profile 
-        ↓  profiledata_etl.py
-  Merged JSON + CSV
-        ↓  sentimentkg_build.ipynb
+data/raw/  (.md files, one per graduate)
+        ↓  src/profiledata_etl.py
+  data/processed/  (merged JSON + CSV)
+        ↓  notebooks/sentimentkg_build.ipynb
   Aspect extraction (spaCy) + Sentiment scoring (ABSA)
-        ↓  sentimentkg_analysis.ipynb
-  Network graphs + Sentiment distribution plots
+        ↓  notebooks/sentimentkg_analysis.ipynb
+  Sentiment distributions + Network graphs
 ```
 
 ---
 
-## Data Fields (Variables)
+## Environments
 
-Each graduate record contains:
+This project uses two separate conda environments — one per notebook — because the ABSA
+library requires Python 3.7, while the analysis stack runs on modern Python.
 
-| Variable | Description |
-|---|---|
-| `id` | Unique cadet identifier (e.g. `016-80`) |
-| `Name` | Full name |
-| `Nickname` | Comma-separated list of nicknames |
-| `Hometown` | City/province of origin |
-| `Birthdate` | Date of birth |
-| `Education` | Pre-academy school |
-| `Company` | Cadet company (Alfa through Hawk) |
-| `Activities.*` | Role held in each activity or organization |
-| `Awards.*` | Athletic letter grades and academic honors |
-| `Qualifications.*` | Marksmanship ratings per weapon |
-| `Description` | Third-person profile written by peers |
-| `Quote` | Self-chosen quote |
+```bash
+# Build notebook
+conda env create -f envs/env_sentimentkg_build.yml
+conda activate sentimentkg-build
+python -m spacy download en_core_web_sm
 
-The `Activities`, `Awards`, and `Qualifications` columns are pivoted wide — each unique activity/award/weapon becomes its own column, with the role or rating as the cell value and `N/A` for graduates who weren't involved.
+# Analysis notebook
+conda env create -f envs/env_sentimentkg_analysis.yml
+conda activate sentimentkg-analysis
+```
+
+See the `.yml` files in `envs/` for the full dependency list of each environment.
+
+---
+
+## Usage
+
+### Step 1 — Run the ETL pipeline
+
+Parses all `.md` files in a folder and produces one merged JSON and one merged CSV.
+
+```bash
+python src/profiledata_etl.py --input data/raw/ --output data/processed/ --name sword80
+```
+
+Output:
+```
+data/processed/
+  ├── sword80.json
+  └── sword80.csv
+```
+
+No external dependencies — uses Python stdlib only (`re`, `ast`, `csv`, `json`, `argparse`).
+
+### Step 2 — Aspect extraction + sentiment scoring
+
+Activate the `sentimentkg-build` environment, then open and run `notebooks/sentimentkg_build.ipynb`.
+
+Requires the [Aspect-Based Sentiment Analysis](https://github.com/ScalaConsultants/Aspect-Based-Sentiment-Analysis) library installed as an editable package:
+
+```bash
+git clone https://github.com/ScalaConsultants/Aspect-Based-Sentiment-Analysis.git
+cd Aspect-Based-Sentiment-Analysis
+pip install -e .
+```
+
+This notebook:
+- Splits graduate text into `Description` (perceived sentiment) and `Quote` (self-expressed sentiment)
+- Extracts aspect candidates using spaCy dependency parsing
+- Scores each aspect's sentiment using a BERT-based ABSA classifier
+- Builds activity and company affiliation matrices for network analysis
+
+### Step 3 — Network analysis + visualizations
+
+Activate the `sentimentkg-analysis` environment, then open and run `notebooks/sentimentkg_analysis.ipynb`.
+
+This notebook answers three research questions:
+1. **What sentiments exist?** — polarity scores and sentiment type distributions across perceived and self-expressed text
+2. **What networks exist?** — one-mode co-activity graph and two-mode cadet–activity bipartite graph
+3. **How do sentiments affect networks?** — sentiment coherence and centrality profiles of the most connected cadets
 
 ---
 
@@ -112,73 +151,27 @@ The pipeline expects one `.md` file per graduate, structured like this:
 - A man who stands for nothing will fall for anything.
 ```
 
-See `data/example_graduate_1.md` and `data/example_graduate_2.md` for full examples.
+See `data/raw/example_profile1.md` and `data/raw/example_profile2.md` for full examples.
 
 ---
 
-## Usage
+## Data fields
 
-### Step 1: Run the data pipeline
+Each graduate record contains:
 
-```bash
-python graduate_pipeline.py --input <md_folder> --output <output_folder> --name <dataset_name>
-```
-
-**Example:**
-```bash
-python graduate_pipeline.py --input data/ --output results/ --name graduates
-```
-
-**Output:**
-```
-results/
-  ├── graduates.json
-  └── graduates.csv
-```
-
-No external dependencies — uses Python stdlib only (`re`, `ast`, `csv`, `json`, `argparse`).
-
-### Step 2: Aspect extraction + sentiment scoring
-
-Open and run `sentinet_code_preprocess.ipynb`.
-
-Requires the [Aspect-Based Sentiment Analysis](https://github.com/ScalaConsultants/Aspect-Based-Sentiment-Analysis) library. Setup:
-
-```bash
-git clone https://github.com/ScalaConsultants/Aspect-Based-Sentiment-Analysis.git
-cd Aspect-Based-Sentiment-Analysis
-conda env create -f environment.yml
-conda activate Aspect-Based-Sentiment-Analysis
-pip install -e .
-python -m spacy download en_core_web_sm
-```
-
-This notebook:
-- Splits graduate text into `Description` (perceived sentiment) and `Quote` (self-expressed sentiment)
-- Extracts noun-based aspect candidates using spaCy dependency parsing
-- Scores each aspect's sentiment using BERT-based ABSA
-- Builds activity/company affiliation matrices for network analysis
-
-### Step 3: Network analysis + visualizations
-
-Open and run `sentinet_code_analysis.ipynb`.
-
-This notebook answers three research questions:
-1. **What sentiments exist?** — polarity scores, sentiment type distribution (positive / negative / mixed / neutral)
-2. **What networks exist?** — bipartite graphs of cadets and their activities, weighted by role
-3. **How do sentiments affect networks?** — affective social reputation (sentiment × network centrality)
-
----
-
-## Dependencies
-
-| Package | Used in |
+| Variable | Description |
 |---|---|
-| `pandas` | All notebooks |
-| `spacy` | Preprocessing notebook |
-| `transformers` | Preprocessing notebook (ABSA) |
-| `networkx` | Analysis notebook |
-| `matplotlib` | Analysis notebook |
-| `aspect_based_sentiment_analysis` | Preprocessing notebook |
+| `id` | Unique cadet identifier (e.g. `016-80`) |
+| `Name` | Full name |
+| `Nickname` | Comma-separated list of nicknames |
+| `Hometown` | City/province of origin |
+| `Birthdate` | Date of birth |
+| `Education` | Pre-academy school |
+| `Company` | Cadet company (Alfa through Hawk) |
+| `Activities.*` | Role held in each activity or organization |
+| `Awards.*` | Athletic letter grades and academic honors |
+| `Qualifications.*` | Marksmanship ratings per weapon |
+| `Description` | Third-person profile written by peers |
+| `Quote` | Self-chosen quote |
 
-Python version: **3.7.16** (required by the ABSA library)
+`Activities`, `Awards`, and `Qualifications` are pivoted wide — each unique activity, award, or weapon becomes its own column, with the role or rating as the cell value and `N/A` for graduates who were not involved.
