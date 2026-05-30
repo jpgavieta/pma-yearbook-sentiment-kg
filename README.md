@@ -4,6 +4,10 @@ A custom NLP data pipeline built on Philippine Military Academy (PMA) Class of 1
 
 Developed as part of an undergraduate thesis exploring the social structure of PMA Class of 1980 through the lens of their yearbook.
 
+[![Build Notebook](https://img.shields.io/badge/View%20Notebook-nbviewer-orange?logo=jupyter)](https://nbviewer.org/github/jpgavieta/pma-yearbook-sentiment-kg/blob/main/notebooks/sentimentkg_build.ipynb)
+[![Analysis Notebook](https://img.shields.io/badge/View%20Notebook-nbviewer-orange?logo=jupyter)](https://nbviewer.org/github/jpgavieta/pma-yearbook-sentiment-kg/blob/main/notebooks/sentimentkg_analysis.ipynb)
+
+
 > **Note:** This repo does not include the real yearbook data — only fictional biographies as examples of the expected `.md` input format. The image-to-text pipeline is also not included; every `.md` file was ultimately transcribed manually due to poor OCR quality.
 
 ---
